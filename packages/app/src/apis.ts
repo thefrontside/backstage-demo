@@ -48,9 +48,25 @@ export const apis: AnyApiFactory[] = [
   }),
   createApiFactory({
     api: graphQlBrowseApiRef,
-    deps: { errorApi: errorApiRef, githubAuthApi: githubAuthApiRef },
-    factory: ({ errorApi, githubAuthApi }) =>
+    deps: {
+      errorApi: errorApiRef,
+      githubAuthApi: githubAuthApiRef,
+      discoveryApi: discoveryApiRef,
+    },
+    factory: ({ errorApi, githubAuthApi, discoveryApi }) =>
       GraphQLEndpoints.from([
+        {
+          id: 'backstage-backend',
+          title: 'Backstage Backend',
+          fetcher: async (params: any) => {
+            const graphqlURL = await discoveryApi.getBaseUrl('graphql');
+            return fetch(graphqlURL, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(params),
+            }).then(res => res.json());
+          },
+        },
         GraphQLEndpoints.github({
           id: 'github',
           title: 'GitHub',

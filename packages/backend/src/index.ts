@@ -28,9 +28,11 @@ import proxy from './plugins/proxy';
 import search from './plugins/search';
 import techdocs from './plugins/techdocs';
 import todo from './plugins/todo';
+import graphql from './plugins/graphql';
 import { PluginEnvironment } from './types';
 import { ServerPermissionClient } from '@backstage/plugin-permission-node';
 import { TaskScheduler } from '@backstage/backend-tasks';
+import { CatalogClient } from '@backstage/catalog-client';
 
 function makeCreateEnv(config: Config) {
   const root = getRootLogger();
@@ -45,6 +47,7 @@ function makeCreateEnv(config: Config) {
   });
   const cacheManager = CacheManager.fromConfig(config);
   const taskScheduler = TaskScheduler.fromConfig(config);
+  const catalogClient = new CatalogClient({ discoveryApi: discovery });
 
   return (plugin: string): PluginEnvironment => {
     const logger = root.child({ type: 'plugin', plugin });
@@ -61,6 +64,7 @@ function makeCreateEnv(config: Config) {
       permissions,
       scheduler,
       cache,
+      catalog: catalogClient,
     };
   };
 }
@@ -76,6 +80,7 @@ async function main() {
   const authEnv = useHotMemoize(module, () => createEnv('auth'));
   const proxyEnv = useHotMemoize(module, () => createEnv('proxy'));
   const searchEnv = useHotMemoize(module, () => createEnv('search'));
+  const graphqlEnv = useHotMemoize(module, () => createEnv('graphql'));
   const techdocsEnv = useHotMemoize(module, () => createEnv('techdocs'));
   const todoEnv = useHotMemoize(module, () => createEnv('todo'));
   const appEnv = useHotMemoize(module, () => createEnv('app'));
@@ -85,6 +90,7 @@ async function main() {
   apiRouter.use('/catalog', await catalog(catalogEnv));
   apiRouter.use('/auth', await auth(authEnv));
   apiRouter.use('/search', await search(searchEnv));
+  apiRouter.use('/graphql', await graphql(graphqlEnv));
   apiRouter.use('/techdocs', await techdocs(techdocsEnv));
   apiRouter.use('/todo', await todo(todoEnv));
   apiRouter.use('/proxy', await proxy(proxyEnv));
